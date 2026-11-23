@@ -1,6 +1,6 @@
 # AI Tutor Platform
 
-A starter full-stack learning app with a React frontend and a Python FastAPI backend. The first slice supports student registration, sign-in, lesson browsing, and saving lesson progress. The tutor interaction is the next milestone.
+A starter full-stack learning app with a React frontend and a Python FastAPI backend. Students create separate accounts and can save their own progress. Tutoring is limited to SQL statements and Python coding.
 
 ## Requirements
 
@@ -39,11 +39,12 @@ The development UI talks to the backend at http://127.0.0.1:8000. Override this 
 
 ## What is implemented
 
-- Student account registration and sign-in using Argon2 password hashes and short-lived signed access tokens.
+- Self-service student accounts with unique email addresses, Argon2 password hashes, and short-lived signed access tokens. Each student has their own progress records; there are no shared classroom credentials.
 - Lesson catalog served by the Python API.
+- Starter lessons for SQL SELECT/WHERE, JOIN, GROUP BY, and Python variables, control flow, and functions.
 - Authenticated progress read/write, stored in a local SQLite database for development.
 - A responsive React dashboard with lesson progress and completion actions.
-- Authenticated lesson-scoped tutor chat through the OpenAI Responses API. Chat history stays in the browser session and is not saved in the app database.
+- Authenticated lesson-scoped tutor chat through the OpenAI Responses API, instructed to stay within SQL statements and Python coding. Chat history stays in the browser session and is not saved in the app database.
 
 ## Current boundaries
 
