@@ -30,6 +30,11 @@ function App() {
   const [lessons, setLessons] = useState([]);
   const [progress, setProgress] = useState([]);
   const [notice, setNotice] = useState("");
+  const [activeLesson, setActiveLesson] = useState(null);
+  const [tutorMessages, setTutorMessages] = useState([]);
+  const [tutorInput, setTutorInput] = useState("");
+  const [tutorBusy, setTutorBusy] = useState(false);
+  const [tutorError, setTutorError] = useState("");
 
   const completed = useMemo(
     () => new Set(progress.filter((item) => item.completed).map((item) => item.lesson_id)),
@@ -96,6 +101,37 @@ function App() {
       setNotice("Progress saved to your account.");
     } catch (err) {
       setError(err.message);
+    }
+  }
+
+  function openTutor(lesson) {
+    setActiveLesson(lesson);
+    setTutorMessages([{ role: "assistant", content: `Hi! What would you like to understand about ${lesson.title.toLowerCase()}?` }]);
+    setTutorError("");
+    setTutorInput("");
+  }
+
+  async function sendTutorMessage(event) {
+    event.preventDefault();
+    const content = tutorInput.trim();
+    if (!content || !activeLesson || tutorBusy) return;
+
+    const nextMessages = [...tutorMessages, { role: "user", content }];
+    setTutorMessages(nextMessages);
+    setTutorInput("");
+    setTutorBusy(true);
+    setTutorError("");
+    try {
+      const result = await api("/api/tutor/chat", {
+        token,
+        method: "POST",
+        body: JSON.stringify({ lesson_id: activeLesson.id, messages: nextMessages }),
+      });
+      setTutorMessages([...nextMessages, { role: "assistant", content: result.message }]);
+    } catch (err) {
+      setTutorError(err.message);
+    } finally {
+      setTutorBusy(false);
     }
   }
 
@@ -185,6 +221,7 @@ function App() {
                     <div className="subject-pill">{lesson.subject}</div>
                     <h3>{lesson.title}</h3>
                     <p>{lesson.description}</p>
+                    <button className="ask-button" onClick={() => openTutor(lesson)}>Ask the tutor <span>↗</span></button>
                     <button className={isComplete ? "complete-button done" : "complete-button"} onClick={() => markComplete(lesson.id)}>
                       <span className="check-icon">{isComplete ? "✓" : "○"}</span>
                       {isComplete ? "Completed" : "Mark complete"}
@@ -195,11 +232,37 @@ function App() {
               })}
             </div>
           </section>
-          <section className="tutor-next">
-            <div className="tutor-spark">✳</div>
-            <div><span className="card-kicker">COMING UP</span><h2>Your AI tutor is getting ready.</h2><p>Next, we’ll add guided hints and explanations to each lesson.</p></div>
-            <span className="tutor-next-tag">NEXT MILESTONE</span>
-          </section>
+          {activeLesson ? (
+            <section className="tutor-panel" aria-labelledby="tutor-title">
+              <div className="tutor-panel-heading">
+                <div className="tutor-spark">✳</div>
+                <div><span className="card-kicker">YOUR LESSON GUIDE</span><h2 id="tutor-title">{activeLesson.title}</h2></div>
+                <button className="quiet-button close-tutor" onClick={() => setActiveLesson(null)}>Close</button>
+              </div>
+              <div className="tutor-messages" role="log" aria-live="polite" aria-label="Tutor conversation">
+                {tutorMessages.map((message, index) => (
+                  <div className={`chat-bubble ${message.role}`} key={`${message.role}-${index}`}>
+                    <span>{message.role === "assistant" ? "NORTHSTAR" : "YOU"}</span>
+                    <p>{message.content}</p>
+                  </div>
+                ))}
+                {tutorBusy && <div className="tutor-thinking" role="status">Thinking through a helpful hint…</div>}
+              </div>
+              {tutorError && <div className="error-message tutor-error" role="alert">{tutorError}</div>}
+              <form className="tutor-form" onSubmit={sendTutorMessage}>
+                <label className="visually-hidden" htmlFor="tutor-message">Ask your tutor a question</label>
+                <textarea id="tutor-message" value={tutorInput} onChange={(event) => setTutorInput(event.target.value)} maxLength={2000} rows={2} placeholder="What part would you like help with?" />
+                <button className="primary-button" disabled={tutorBusy || !tutorInput.trim()}>{tutorBusy ? "Sending…" : "Send"}<span> →</span></button>
+              </form>
+              <p className="tutor-privacy">This chat stays in this browser session and is sent to the tutor service to generate a reply.</p>
+            </section>
+          ) : (
+            <section className="tutor-next">
+              <div className="tutor-spark">✳</div>
+              <div><span className="card-kicker">LEARN WITH GUIDANCE</span><h2>Ask for a hint when you need one.</h2><p>Choose “Ask the tutor” on a lesson to get a step-by-step explanation.</p></div>
+              <span className="tutor-next-tag">AI TUTOR</span>
+            </section>
+          )}
         </main>
       )}
       <footer className="footer"><span>northstar<span className="brand-dot">.</span></span><span>Made for curious minds</span></footer>

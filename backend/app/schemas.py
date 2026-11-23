@@ -1,3 +1,5 @@
+from typing import Literal
+
 from pydantic import BaseModel, ConfigDict, Field
 
 
@@ -30,3 +32,17 @@ class ProgressView(BaseModel):
     last_position: int
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class TutorMessage(BaseModel):
+    role: Literal["user", "assistant"]
+    content: str = Field(min_length=1, max_length=2000)
+
+
+class TutorRequest(BaseModel):
+    lesson_id: str = Field(min_length=1, max_length=100)
+    messages: list[TutorMessage] = Field(min_length=1, max_length=12)
+
+
+class TutorResponse(BaseModel):
+    message: str

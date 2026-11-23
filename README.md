@@ -35,7 +35,7 @@ npm run dev
 
 Open the URL printed by Vite (normally http://localhost:5173).
 
-The development UI talks to the backend at http://127.0.0.1:8000. Override this with `VITE_API_URL` if needed.
+The development UI talks to the backend at http://127.0.0.1:8000. Override this with `VITE_API_URL` if needed. Set `OPENAI_API_KEY` in `backend/.env` to enable tutor replies; the key stays on the backend.
 
 ## What is implemented
 
@@ -43,10 +43,11 @@ The development UI talks to the backend at http://127.0.0.1:8000. Override this 
 - Lesson catalog served by the Python API.
 - Authenticated progress read/write, stored in a local SQLite database for development.
 - A responsive React dashboard with lesson progress and completion actions.
+- Authenticated lesson-scoped tutor chat through the OpenAI Responses API. Chat history stays in the browser session and is not saved in the app database.
 
 ## Current boundaries
 
-This is a development starter. It is not ready for production use. Before deployment, configure a production database, HTTPS, secure cookie/session strategy, account recovery, rate limits, migrations, privacy/retention controls, and deployment secrets. The tutor model integration is not wired yet; do not put provider keys in the frontend.
+This is a development starter. It is not ready for production use. Before deployment, configure a production database, HTTPS, secure cookie/session strategy, account recovery, rate limits, migrations, privacy/retention controls, and deployment secrets. Tutor messages are sent to OpenAI to generate a reply; add the required user-facing privacy notice and review provider data settings before serving students. Never put provider keys in the frontend.
 
 ## Project layout
 

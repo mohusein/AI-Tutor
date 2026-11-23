@@ -4,13 +4,21 @@ from contextlib import asynccontextmanager
 
 from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
+from openai import AsyncOpenAI, OpenAIError
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from .database import Base, engine, get_db
 from .models import LessonProgress, User
-from .schemas import AuthResponse, Credentials, ProgressUpdate, ProgressView
+from .schemas import (
+    AuthResponse,
+    Credentials,
+    ProgressUpdate,
+    ProgressView,
+    TutorRequest,
+    TutorResponse,
+)
 from .security import (
     create_access_token,
     get_current_user,
@@ -138,3 +146,57 @@ def save_progress(
     db.commit()
     db.refresh(progress)
     return progress
+
+
+@app.post("/api/tutor/chat", response_model=TutorResponse)
+async def tutor_chat(
+    request: TutorRequest,
+    user: User = Depends(get_current_user),
+):
+    del user  # Authentication is required; conversation content is not stored by this API.
+    lesson = next((item for item in LESSONS if item["id"] == request.lesson_id), None)
+    if lesson is None:
+        raise HTTPException(status_code=404, detail="Lesson not found.")
+    if request.messages[-1].role != "user":
+        raise HTTPException(status_code=422, detail="The latest message must be from the student.")
+
+    api_key = os.getenv("OPENAI_API_KEY", "")
+    if not api_key:
+        raise HTTPException(
+            status_code=503,
+            detail="The tutor is not configured yet. Add OPENAI_API_KEY to the backend environment.",
+        )
+
+    instructions = (
+        "You are Northstar, a supportive math tutor. Help the student understand the idea, "
+        "not just copy an answer. Use clear, age-appropriate language and short steps. Ask "
+        "one guiding question or give one hint at a time. If the student is stuck, explain "
+        "the next step and invite them to try it. Be accurate, kind, and stay focused on the "
+        "lesson. Do not ask for personal details; if the student shares them, do not repeat "
+        "them and gently return to the lesson.\n\n"
+        f"Lesson: {lesson['title']} ({lesson['subject']}). {lesson['description']}"
+    )
+    input_messages = [
+        {"role": message.role, "content": message.content}
+        for message in request.messages
+    ]
+
+    try:
+        async with AsyncOpenAI(api_key=api_key, timeout=30.0) as client:
+            response = await client.responses.create(
+                model=os.getenv("OPENAI_MODEL", "gpt-5.5"),
+                instructions=instructions,
+                input=input_messages,
+                max_output_tokens=500,
+                store=False,
+            )
+    except OpenAIError:
+        raise HTTPException(
+            status_code=503,
+            detail="The tutor is temporarily unavailable. Please try again shortly.",
+        )
+
+    answer = response.output_text.strip()
+    if not answer:
+        raise HTTPException(status_code=503, detail="The tutor could not respond. Please try again.")
+    return TutorResponse(message=answer)
