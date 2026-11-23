@@ -106,7 +106,7 @@ function App() {
 
   function openTutor(lesson) {
     setActiveLesson(lesson);
-    setTutorMessages([{ role: "assistant", content: `Hi! What would you like to understand about ${lesson.title.toLowerCase()}?` }]);
+    setTutorMessages([]);
     setTutorError("");
     setTutorInput("");
   }
@@ -129,6 +129,8 @@ function App() {
       });
       setTutorMessages([...nextMessages, { role: "assistant", content: result.message }]);
     } catch (err) {
+      setTutorMessages(tutorMessages);
+      setTutorInput(content);
       setTutorError(err.message);
     } finally {
       setTutorBusy(false);
@@ -158,17 +160,19 @@ function App() {
             <div className="eyebrow"><span className="eyebrow-line" /> YOUR LEARNING, IN MOTION</div>
             <h1>Small steps.<br /><em>Bright futures.</em></h1>
             <p className="welcome-copy">A calm space to learn at your pace, practice what matters, and see how far you’ve come.</p>
-            <div className="orbit-art" aria-hidden="true">
-              <div className="orbit orbit-one" /><div className="orbit orbit-two" /><div className="orbit-core">✳</div>
-              <span className="orbit-note note-one">curiosity</span><span className="orbit-note note-two">progress</span>
+            <div className="desktop-shortcuts" aria-label="Learning programs">
+              <div className="desktop-shortcut"><span className="shortcut-icon" aria-hidden="true">▤</span><span>SQL lessons</span></div>
+              <div className="desktop-shortcut"><span className="shortcut-icon python-icon" aria-hidden="true">Py</span><span>Python lab</span></div>
+              <div className="desktop-shortcut"><span className="shortcut-icon" aria-hidden="true">▣</span><span>Student ID</span></div>
+              <div className="desktop-shortcut"><span className="shortcut-icon" aria-hidden="true">▰</span><span>Save slot</span></div>
             </div>
-            <p className="welcome-foot">A little learning, every day.</p>
+            <p className="welcome-foot">A little learning, every day. <span>▌</span></p>
           </section>
 
           <section className="auth-card">
             <div className="card-kicker">STUDENT PORTAL</div>
             <h2>{mode === "login" ? "Welcome back" : "Create your account"}</h2>
-            <p className="card-copy">{mode === "login" ? "Pick up where your curiosity left off." : "Your learning journey starts here."}</p>
+            <p className="card-copy">{mode === "login" ? "Pick up where your curiosity left off." : "Create your own account; your progress stays separate."}</p>
             <form onSubmit={submitAuth}>
               <label htmlFor="email">Email address</label>
               <input id="email" type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" />
@@ -183,7 +187,7 @@ function App() {
                 {mode === "login" ? "Create an account" : "Sign in"}
               </button>
             </p>
-            <div className="privacy-note"><span>⌑</span> Your progress is saved to your account.</div>
+            <div className="privacy-note"><span>⌑</span> One account per learner. Progress is private to that account.</div>
           </section>
         </main>
       ) : (
@@ -192,7 +196,7 @@ function App() {
             <div>
               <div className="eyebrow"><span className="eyebrow-line" /> YOUR LEARNING SPACE</div>
               <h1>Good to see you<span className="brand-dot">,</span><br /><em>{user?.email?.split("@")[0]}</em></h1>
-              <p className="welcome-copy">A little progress adds up. Choose a lesson and keep going.</p>
+              <p className="welcome-copy">Practice SQL statements and Python coding, with a tutor to guide you.</p>
             </div>
             <div className="progress-card">
               <div className="progress-head"><span>YOUR MOMENTUM</span><span>{completed.size} / {lessons.length}</span></div>
@@ -240,6 +244,12 @@ function App() {
                 <button className="quiet-button close-tutor" onClick={() => setActiveLesson(null)}>Close</button>
               </div>
               <div className="tutor-messages" role="log" aria-live="polite" aria-label="Tutor conversation">
+                {tutorMessages.length === 0 && (
+                  <div className="chat-bubble assistant">
+                    <span>NORTHSTAR</span>
+                    <p>Hi! I can help with SQL statements and Python coding. What would you like to work on in {activeLesson.title.toLowerCase()}?</p>
+                  </div>
+                )}
                 {tutorMessages.map((message, index) => (
                   <div className={`chat-bubble ${message.role}`} key={`${message.role}-${index}`}>
                     <span>{message.role === "assistant" ? "NORTHSTAR" : "YOU"}</span>
